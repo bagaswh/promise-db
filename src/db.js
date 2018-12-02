@@ -34,7 +34,11 @@ export const Database = {
       let self = this;
       openDBReq.onupgradeneeded = function (e) {
         upgradeDB(e.target.result);
-        resolve(self);
+        self.db = e.target.result;
+
+        e.target.transaction.oncomplete = function (e) {
+          resolve(self);
+        };
       };
       openDBReq.onsuccess = function (e) {
         self.db = e.target.result;
@@ -76,14 +80,15 @@ export const Database = {
     );
     let request = objectStore.get(key);
     return await this.__promisifyRequest(request).then(result => {
-      if (result != undefined) {
+      if (result !== undefined) {
         // proceeds to modify
-        request = objectStore.put(key, value);
+        request = objectStore.put(value);
         return this.__promisifyRequest(request);
+      } else {
+        // data exists, deny modification to prevent inserting data
+        //return Promise.reject();
       }
 
-      // data exists, deny modification to prevent inserting data
-      return Promise.reject();
     });
   },
 
