@@ -84,11 +84,10 @@ export const Database = {
         // proceeds to modify
         request = objectStore.put(value);
         return this.__promisifyRequest(request);
-      } else {
-        // data exists, deny modification to prevent inserting data
-        //return Promise.reject();
       }
 
+      // data exists, deny modification to prevent inserting data
+      return Promise.reject();
     });
   },
 
