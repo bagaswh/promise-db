@@ -86,7 +86,7 @@ export const Database = {
         return this.__promisifyRequest(request);
       }
 
-      // data exists, deny modification to prevent inserting data
+      // data does not exist, deny modification to prevent inserting data
       return Promise.reject();
     });
   },
