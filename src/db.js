@@ -73,12 +73,31 @@ export const Database = {
     return promisifyRequest(request);
   },
 
-  async modifyDataByKey(objectStoreName, key, value) {
+  async modifyDataByKey(objectStoreName, value, key) {
     let objectStore = this._getObjectStore(
       objectStoreName,
       TRANSACTION_MODE_READWRITE
     );
     let request = objectStore.get(key);
+    return await promisifyRequest(request).then(result => {
+      if (result !== undefined) {
+        // proceeds to modify
+        request = objectStore.put(value, key);
+        return promisifyRequest(request);
+      }
+
+      // data does not exist, deny modification to prevent inserting data
+      return Promise.reject();
+    });
+  },
+
+  async modifyDataByIndex(objectStoreName, indexName, value, key) {
+    let objectStore = this._getObjectStore(
+      objectStoreName,
+      TRANSACTION_MODE_READWRITE
+    );
+    let index = objectStore.index(indexName);
+    //let request = 
     return await promisifyRequest(request).then(result => {
       if (result !== undefined) {
         // proceeds to modify
@@ -100,14 +119,19 @@ export const Database = {
     return promisifyRequest(request);
   },
 
-  deleteDataByIndex(objectStoreName, indexName, indexKey) {
+  async deleteDataByIndex(objectStoreName, indexName, indexKey) {
     let objectStore = this._getObjectStore(
       objectStoreName,
       TRANSACTION_MODE_READWRITE
     );
     let index = objectStore.index(indexName);
     let request = index.get(indexKey);
-    return promisifyRequest(request);
+    return await promisifyRequest(request).then(data => {
+      if (data !== undefined) {
+        request = objectStore.delete(data[objectStore.keyPath]);
+        return promisifyRequest(request);
+      }
+    });
   },
 
   getDataByKey(objectStoreName, key) {
