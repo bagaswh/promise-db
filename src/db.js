@@ -1,50 +1,50 @@
 const TRANSACTION_MODE_READWRITE = 'readwrite';
 const TRANSACTION_MODE_READONLY = 'readonly';
+
+function promisifyRequest(request) {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = e => {
+      resolve(e.target.result);
+    };
+    request.onerror = e => {
+      reject(e.target.error);
+    };
+  });
+}
+
+function promisifyOpenRequest(request) {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = e => {
+      resolve(e.target.result);
+    };
+    request.onerror = e => {
+      reject(e.target.error);
+    };
+    request.onblocked = e => {
+      reject(e.target.error);
+    };
+  });
+}
+
 export const Database = {
   db: null,
-
-  __promisifyRequest(request) {
-    return new Promise((resolve, reject) => {
-      request.onsuccess = function (e) {
-        resolve(e.target.result);
-      };
-      request.onerror = function (e) {
-        reject(e.target.error);
-      };
-    });
-  },
-
-  __promisifyOpenRequest(request) {
-    return new Promise((resolve, reject) => {
-      request.onsuccess = function (e) {
-        resolve(e.target.result);
-      };
-      request.onerror = function (e) {
-        reject(e.target.error);
-      };
-      request.onblocked = function (e) {
-        reject(e.target.error);
-      };
-    });
-  },
 
   init(dbName, dbVersion, upgradeDB) {
     return new Promise((resolve, reject) => {
       let openDBReq = window.indexedDB.open(dbName, dbVersion);
-      let self = this;
-      openDBReq.onupgradeneeded = function (e) {
+      openDBReq.onupgradeneeded = e => {
         upgradeDB(e.target.result);
-        self.db = e.target.result;
+        this.db = e.target.result;
 
-        e.target.transaction.oncomplete = function (e) {
-          resolve(self);
+        e.target.transaction.oncomplete = e => {
+          resolve(this);
         };
       };
-      openDBReq.onsuccess = function (e) {
-        self.db = e.target.result;
-        resolve(self);
+      openDBReq.onsuccess = e => {
+        this.db = e.target.result;
+        resolve(this);
       };
-      openDBReq.onerror = function (e) {
+      openDBReq.onerror = e => {
         reject(e.target.error);
       };
     });
@@ -52,7 +52,7 @@ export const Database = {
 
   deleteDatabase(dbName) {
     let deleteDBReq = window.indexedDB.deleteDatabase(dbName);
-    return this.__promisifyOpenRequest(deleteDBReq);
+    return promisifyOpenRequest(deleteDBReq);
   },
 
   _getTransaction(objectStoreList, mode) {
@@ -70,7 +70,7 @@ export const Database = {
       TRANSACTION_MODE_READWRITE
     );
     let request = objectStore.add(value);
-    return this.__promisifyRequest(request);
+    return promisifyRequest(request);
   },
 
   async modifyDataByKey(objectStoreName, key, value) {
@@ -79,11 +79,11 @@ export const Database = {
       TRANSACTION_MODE_READWRITE
     );
     let request = objectStore.get(key);
-    return await this.__promisifyRequest(request).then(result => {
+    return await promisifyRequest(request).then(result => {
       if (result !== undefined) {
         // proceeds to modify
         request = objectStore.put(value);
-        return this.__promisifyRequest(request);
+        return promisifyRequest(request);
       }
 
       // data does not exist, deny modification to prevent inserting data
@@ -97,7 +97,7 @@ export const Database = {
       TRANSACTION_MODE_READWRITE
     );
     let request = objectStore.delete(key);
-    return this.__promisifyRequest(request);
+    return promisifyRequest(request);
   },
 
   deleteDataByIndex(objectStoreName, indexName, indexKey) {
@@ -107,7 +107,7 @@ export const Database = {
     );
     let index = objectStore.index(indexName);
     let request = index.get(indexKey);
-    return this.__promisifyRequest(request);
+    return promisifyRequest(request);
   },
 
   getDataByKey(objectStoreName, key) {
@@ -116,7 +116,7 @@ export const Database = {
       TRANSACTION_MODE_READONLY
     );
     let request = objectStore.get(key);
-    return this.__promisifyRequest(request);
+    return promisifyRequest(request);
   },
 
   getDataByIndex(objectStoreName, indexName, indexKey) {
@@ -126,7 +126,7 @@ export const Database = {
     );
     let index = objectStore.index(indexName);
     let request = index.get(indexKey);
-    return this.__promisifyRequest(request);
+    return promisifyRequest(request);
   },
 
   getAllData(objectStoreName) {
@@ -135,6 +135,6 @@ export const Database = {
       TRANSACTION_MODE_READONLY
     );
     let request = objectStore.getAll();
-    return this.__promisifyRequest(request);
+    return promisifyRequest(request);
   }
 };
