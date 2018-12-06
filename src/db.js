@@ -21,7 +21,7 @@ function promisifyOpenRequest(request) {
       reject(e.target.error);
     };
     request.onblocked = e => {
-      reject(e.target.error);
+      reject(e);
     };
   });
 }
@@ -91,18 +91,26 @@ export const Database = {
     });
   },
 
-  async modifyDataByIndex(objectStoreName, indexName, value, key) {
+  async modifyDataByIndex(objectStoreName, indexName, indexKey, value) {
     let objectStore = this._getObjectStore(
       objectStoreName,
       TRANSACTION_MODE_READWRITE
     );
     let index = objectStore.index(indexName);
-    //let request = 
-    return await promisifyRequest(request).then(result => {
+    let request = index.get(indexKey);
+    return await promisifyRequest(request).then(async result => {
       if (result !== undefined) {
         // proceeds to modify
-        request = objectStore.put(value);
-        return promisifyRequest(request);
+        // getting object-store
+        request = objectStore.get(result.keyPath);
+        return await promisifyRequest(request).then(result => {
+          if (result !== undefined) {
+            request = objectStore.put(value);
+            return promisifyRequest(request);
+          }
+
+          return Promise.reject();
+        });
       }
 
       // data does not exist, deny modification to prevent inserting data

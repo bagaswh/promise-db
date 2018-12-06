@@ -4,22 +4,55 @@ import {
 
 let database = Object.create(Database);
 
-async function createDatabase() {
-  return await database.init('___test-d__ata-1269', 1, upgradeDB => {
-    let objectStore = upgradeDB
-      .createObjectStore('test-objectstore-6969', {
-        keyPath: 'id',
-        autoIncrement: true
-      })
-    objectStore.createIndex('name', 'name', {
-      unique: false
-    });
-  });
-}
+let db = database.init('tokopedia-giveaway', 3, upgradeDB => {
+  let objectStores = [{
+    objectStoreName: 'followers',
+    options: {
+      keyPath: 'id',
+      autoIncrement: true
+    },
+    indexes: [{
+      indexName: 'name',
+      indexKey: 'name',
+      options: {
+        unique: false,
+        multiple: true
+      }
+    }]
+  }, {
+    objectStoreName: 'workspaces',
+    options: {
+      keyPath: 'name'
+    }
+  }];
 
-let db = createDatabase();
-db.then(async dbInstance => {
-  //await dbInstance.deleteDataByKey('test-objectstore-6969', 2);
-  await dbInstance.deleteDataByIndex('test-objectstore-6969', 'name', 'sigile');
-  await dbInstance.getAllData('test-objectstore-6969').then(data => console.log(data));
+  objectStores.forEach(objectStore => {
+    let os = upgradeDB.createObjectStore(objectStore.objectStoreName, objectStore.options);
+    if (objectStore.indexes) {
+      objectStore.indexes.forEach(index => {
+        os.createIndex(index.indexName, index.indexKey, index.options);
+      });
+    }
+  });
+
 });
+
+db.then(dbInstance => {
+  //dbInstance.addData('workspaces', {
+  //name: 'oyoyoy',
+  //scenarios: [{
+  //scenarioName: 'tungpo'
+  //}]
+  //});
+  //dbInstance.addData('followers', 'lolez');
+  dbInstance.deleteDatabase('tokopedia-giveaway');
+});
+
+//let db = createDatabase();
+//db.then(async dbInstance => {
+//await dbInstance.deleteDataByKey('test-objectstore-6969', 2);
+//await dbInstance.deleteDataByIndex('test-objectstore-6969', 'name', 'sigile');
+//await dbInstance.getAllData('test-objectstore-6969').then(data => console.log(data));
+//console.log(dbInstance);
+//dbInstance.deleteDatabase('data6969').then(fullfilled => console.log('successfully deleted'));
+//});
